@@ -1,0 +1,35 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+
+  config.vm.box = "ubuntu/xenial64"
+  config.vm.provision "file", source: "hosts", destination: "/tmp/hosts"
+  config.vm.provision "file", source: "ssh/ansible_ssh_key.pub", destination: "/home/ubuntu/.ssh/ansible_ssh_key.pub"
+  config.vm.provision "shell", path: "common.sh"
+  config.vm.synced_folder "../", "/devops"
+
+  config.vm.define "ansible" do |node|
+    node.vm.hostname = "ansible"
+    node.vm.network "private_network", ip: "192.168.45.10"
+    config.vm.provider :virtualbox do |vb|
+       vb.customize ["modifyvm", :id, "--memory", "512"]
+       vb.customize ["modifyvm", :id, "--cpus", "1"]
+    end  
+    config.vm.provision "file", source: "ssh/ansible_ssh_key", destination: "/home/ubuntu/.ssh/id_rsa"
+    node.vm.provision "shell", path: "install_ansible.sh"
+  end
+
+
+  (1..3).each do |i|
+    config.vm.define "node#{i}" do |node|
+      node.vm.hostname = "node#{i}"
+      node.vm.network "private_network", ip: "192.168.45.1#{i}"
+      config.vm.provider :virtualbox do |vb|
+        vb.customize ["modifyvm", :id, "--memory", "512"]
+        vb.customize ["modifyvm", :id, "--cpus", "1"]
+      end
+    end
+  end
+
+end
